@@ -26,3 +26,15 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Terraform - 🔒 CRITICAL: Never commit state or plan files!
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfplan
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
