@@ -92,15 +92,7 @@
         project_src: "{{ app_dir }}"
         files:
           - docker-compose.prod.yml
-        pull: missing
-
-    - name: Start containers with Docker Compose
-      community.docker.docker_compose_v2:
-        project_src: "{{ app_dir }}"
-        files:
-          - docker-compose.prod.yml
-        state: present
-        restarted: yes
+        pull: always
 
     - name: Show running containers
       command: docker ps
