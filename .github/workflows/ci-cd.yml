@@ -8,8 +8,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Преобразуем имя репозитория в lowercase и заменяем дефисы
-  IMAGE_NAME: ${{ lower(github.repository) }}
+  # Явно задаем имена образов в lowercase
+  FRONTEND_IMAGE: ghcr.io/svdbel/gamestats-hub-frontend
+  BACKEND_IMAGE: ghcr.io/svdbel/gamestats-hub-backend
 
 jobs:
   test-build-push:
@@ -18,6 +19,11 @@ jobs:
     strategy:
       matrix:
         service: [frontend, backend]
+        include:
+          - service: frontend
+            image: ${{ env.FRONTEND_IMAGE }}
+          - service: backend
+            image: ${{ env.BACKEND_IMAGE }}
     steps:
       # -------------- 1. Checkout code --------------
       - name: Checkout repository
@@ -41,7 +47,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
+            ${{ matrix.image }}
           tags: |
             type=ref,event=branch
             type=sha,prefix=
@@ -76,9 +82,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/gamestatshub/
-            # Используем преобразованные имена образов
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:latest
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest
+            # Используем явно заданные имена образов
+            docker pull ${{ env.FRONTEND_IMAGE }}:latest
+            docker pull ${{ env.BACKEND_IMAGE }}:latest
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
 

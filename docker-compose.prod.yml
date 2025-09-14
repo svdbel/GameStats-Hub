@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    image: ghcr.io/svdbel/gamestatshub-frontend:latest
+    image: ghcr.io/svdbel/gamestats-hub-frontend:latest
     container_name: gamestats-frontend-prod
     restart: unless-stopped
     ports:
@@ -11,7 +11,7 @@ services:
       - .env.prod
 
   backend:
-    image: ghcr.io/svdbel/gamestatshub-backend:latest
+    image: ghcr.io/svdbel/gamestats-hub-backend:latest
     container_name: gamestats-backend-prod
     restart: unless-stopped
     ports:
