@@ -13,6 +13,7 @@ jobs:
   test-build-push:
     name: Test, Build and Push Docker Images
     runs-on: ubuntu-latest
+    environment: GameStats Hub
     strategy:
       matrix:
         service: [frontend, backend]
@@ -69,6 +70,7 @@ jobs:
   # -------------- 7. Deployment (Triggered only on push to main) --------------
   deploy:
     name: Deploy to Production
+    environment: GameStats Hub
     needs: test-build-push
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
