@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    container_name: gamestats-frontend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./frontend:/app
+    environment:
+      - FLASK_ENV=development
+
+  backend:
+    build: ./backend
+    container_name: gamestats-backend
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - FLASK_ENV=development
