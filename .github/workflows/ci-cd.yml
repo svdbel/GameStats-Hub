@@ -8,9 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # Явно задаем имена образов в lowercase
-  FRONTEND_IMAGE: ghcr.io/svdbel/gamestats-hub-frontend
-  BACKEND_IMAGE: ghcr.io/svdbel/gamestats-hub-backend
 
 jobs:
   test-build-push:
@@ -19,11 +16,6 @@ jobs:
     strategy:
       matrix:
         service: [frontend, backend]
-        include:
-          - service: frontend
-            image: ${{ env.FRONTEND_IMAGE }}
-          - service: backend
-            image: ${{ env.BACKEND_IMAGE }}
     steps:
       # -------------- 1. Checkout code --------------
       - name: Checkout repository
@@ -41,19 +33,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      # -------------- 4. Extract metadata (tags, labels) for Docker --------------
+      # -------------- 4. Определяем имя образа на основе сервиса --------------
+      - name: Set image name
+        id: set-image
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            echo "IMAGE_NAME=svdbel/gamestats-hub-frontend" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_NAME=svdbel/gamestats-hub-backend" >> $GITHUB_OUTPUT
+          fi
+
+      # -------------- 5. Extract metadata (tags, labels) for Docker --------------
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ matrix.image }}
+            ${{ env.REGISTRY }}/${{ steps.set-image.outputs.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      # -------------- 5. Build and push Docker image --------------
+      # -------------- 6. Build and push Docker image --------------
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -64,7 +66,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # -------------- 6. Deployment (Triggered only on push to main) --------------
+  # -------------- 7. Deployment (Triggered only on push to main) --------------
   deploy:
     name: Deploy to Production
     needs: test-build-push
@@ -83,12 +85,12 @@ jobs:
           script: |
             cd /opt/gamestatshub/
             # Используем явно заданные имена образов
-            docker pull ${{ env.FRONTEND_IMAGE }}:latest
-            docker pull ${{ env.BACKEND_IMAGE }}:latest
+            docker pull ghcr.io/svdbel/gamestats-hub-frontend:latest
+            docker pull ghcr.io/svdbel/gamestats-hub-backend:latest
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
 
-      # -------------- 7. Send Telegram Notification --------------
+      # -------------- 8. Send Telegram Notification --------------
       - name: Send Telegram notification
         uses: appleboy/telegram-action@master
         with:
