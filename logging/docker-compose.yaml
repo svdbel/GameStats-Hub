@@ -6,15 +6,15 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: elasticsearch
     environment:
-      - ELASTIC_PASSWORD=changeme # Пароль для elastic (для демо)
+      - ELASTIC_PASSWORD=changeme        # Пароль для elastic (для демо)
       - "discovery.type=single-node"
       - "xpack.security.http.ssl.enabled=true"
       - "xpack.security.http.ssl.verification_mode=full"
       - "xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/elastic.key"
       - "xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/elastic.crt"
     volumes:
-      - ./logging/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-      - ./logging/elasticsearch/jvm.options:/usr/share/elasticsearch/config/jvm.options
+      - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./elasticsearch/jvm.options:/usr/share/elasticsearch/config/jvm.options
       - ./certs:/usr/share/elasticsearch/config/certs
       - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
@@ -36,7 +36,7 @@ services:
       - ELASTICSEARCH_SECURITY_SERVICETOKENS_TOKEN_KIBANA=AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYV90b2tlbjpqa2ZUOGZmSlNXcTl3Z240dkw5d2tR
 
     volumes:
-      - ./logging/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
       - ./certs:/usr/share/kibana/config/certs
     ports:
       - "5601:5601"
@@ -56,11 +56,11 @@ services:
       - "xpack.monitoring.elasticsearch.password=changeme"
       - "xpack.monitoring.elasticsearch.ssl.ca_truststore.path=/usr/share/logstash/config/certs/ca.crt"
     volumes:
-      - ./logging/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
-      - ./logging/logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
       - ./certs:/usr/share/logstash/config/certs
     ports:
-      - "5044:5044" # TLS порт для Filebeat
+      - "5044:5044"  # TLS порт для Filebeat
     networks:
       - elk
     depends_on:
@@ -74,7 +74,7 @@ services:
     entrypoint: >
       sh -c "sleep 5 && filebeat -e -c /usr/share/filebeat/filebeat.yml"  # Добавлено sleep 5 для ожидания сертификатов
     volumes:
-      - ./logging/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
       - /var/log:/var/log:ro
       - ./certs:/usr/share/filebeat/certs
       - filebeat_data:/usr/share/filebeat/data
@@ -87,7 +87,6 @@ services:
 volumes:
   elasticsearch_data:
   filebeat_data:
-
 
 networks:
   elk:

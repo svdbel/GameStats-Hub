@@ -64,13 +64,6 @@
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
 
-    - name: Copy production docker-compose.logging.yml
-      copy:
-        src: ../../docker-compose.logging.yml
-        dest: "{{ app_dir }}/docker-compose.logging.yml"
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
-
     - name: Copy production docker-compose.monitoring.yml
       copy:
         src: ../../docker-compose.monitoring.yml

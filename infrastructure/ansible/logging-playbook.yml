@@ -1,0 +1,76 @@
+---
+- name: Configure ELK logging infrastructure
+  hosts: all # или укажите конкретную группу хостов
+  become: yes # если нужны права sudo
+  vars:
+    app_user: "ubuntu"
+    app_dir: "/opt/gamestatshub"
+
+  tasks:
+    - name: Ensure logging directory exists
+      file:
+        path: "{{ app_dir }}/logging"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0755"
+
+    - name: Copy Elasticsearch config to server
+      copy:
+        src: ../../logging/elasticsearch/
+        dest: "{{ app_dir }}/logging/elasticsearch/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy Filebeat config to server
+      copy:
+        src: ../../logging/filebeat/
+        dest: "{{ app_dir }}/logging/filebeat/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy Kibana config to server
+      copy:
+        src: ../../logging/kibana/
+        dest: "{{ app_dir }}/logging/kibana/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy Logstash config and pipeline to server
+      copy:
+        src: ../../logging/logstash/
+        dest: "{{ app_dir }}/logging/logstash/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy production docker-compose.logging.yml
+      copy:
+        src: ../../docker-compose.logging.yml
+        dest: "{{ app_dir }}/docker-compose.logging.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+
+    - name: Start ELK stack containers with Docker Compose
+      command:
+        cmd: docker compose -f {{ app_dir }}/docker-compose.logging.yml up -d
+        chdir: "{{ app_dir }}"
+      become: yes
+      become_user: "{{ app_user }}"
+      args:
+        creates: "{{ app_dir }}/.docker-compose-started" # опционально: чтобы избежать повторного запуска
+
+    - name: Show running containers
+      command: docker ps
+      register: docker_ps_result
+
+    - name: Display running containers
+      debug:
+        var: docker_ps_result.stdout_lines
