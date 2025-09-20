@@ -57,10 +57,24 @@
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
 
-    - name: Copy production docker-compose file
+    - name: Copy production docker-compose.prod.yml
       copy:
         src: ../../docker-compose.prod.yml
         dest: "{{ app_dir }}/docker-compose.prod.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+
+    - name: Copy production docker-compose.logging.yml
+      copy:
+        src: ../../docker-compose.logging.yml
+        dest: "{{ app_dir }}/docker-compose.logging.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+
+    - name: Copy production docker-compose.monitoring.yml
+      copy:
+        src: ../../docker-compose.monitoring.yml
+        dest: "{{ app_dir }}/docker-compose.monitoring.yml"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
 
@@ -92,12 +106,14 @@
         project_src: "{{ app_dir }}"
         files:
           - docker-compose.prod.yml
+          - docker-compose.monitoring.yml
+          - docker-compose.logging.yml
         pull: always
 
     - name: Show running containers
       command: docker ps
       register: docker_ps_result
-      
+
     - name: Display running containers
       debug:
         var: docker_ps_result.stdout_lines
