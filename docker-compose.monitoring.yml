@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   prometheus:
@@ -11,10 +11,10 @@ services:
       - ./monitoring/prometheus/alertrules.yml:/etc/prometheus/alertrules.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     restart: unless-stopped
     depends_on:
       - alertmanager
@@ -28,10 +28,10 @@ services:
       - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml
       - alertmanager_data:/alertmanager
     env_file:
-      - ./.env.prod # Передаем переменные из .env
+      - ./.env # Передаем переменные из .env
     command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
+      - "--config.file=/etc/alertmanager/config.yml"
+      - "--storage.path=/alertmanager"
     restart: unless-stopped
 
   grafana:
