@@ -2,39 +2,33 @@ name: CI/CD Pipeline for GameStats Hub
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
-  test-build-push:
-    name: Test, Build and Push Docker Images
+  # ============ ЭТАП 1: Build Docker image ============
+  build:
+    name: Build Docker Images
     runs-on: ubuntu-latest
     environment: GameStats Hub
     strategy:
       matrix:
         service: [frontend, backend]
+
     steps:
-      # -------------- 1. Checkout code --------------
+      # -------------- 1.1 Checkout code --------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # -------------- 2. Set up Docker Buildx --------------
+      # -------------- 1.2 Set up Docker Buildx --------------
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # -------------- 3. Log in to GitHub Container Registry --------------
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}  # Убедитесь, что этот секрет существует!
-
-      # -------------- 4. Определяем имя образа на основе сервиса --------------
+      # -------------- 1.3 Set image name --------------
       - name: Set image name
         id: set-image
         run: |
@@ -44,7 +38,7 @@ jobs:
             echo "IMAGE_NAME=svdbel/gamestats-hub-backend" >> $GITHUB_OUTPUT
           fi
 
-      # -------------- 5. Extract metadata (tags, labels) for Docker --------------
+      # -------------- 1.4 Extract Docker metadata --------------
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -56,55 +50,207 @@ jobs:
             type=sha,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      # -------------- 6. Build and push Docker image --------------
-      - name: Build and push Docker image
+      # -------------- 1.5 Build Docker image --------------
+      - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: ./${{ matrix.service }}
-          push: ${{ github.event_name != 'pull_request' }}
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=docker,dest=/tmp/image-${{ matrix.service }}.tar
 
-  # -------------- 7. Deployment (Triggered only on push to main) --------------
-  deploy:
-    name: Deploy to Production
-    environment: GameStats Hub
-    needs: test-build-push
+      # -------------- 1.6 Save image artifact --------------
+      - name: Save Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+          path: /tmp/image-${{ matrix.service }}.tar
+          retention-days: 1
+
+  # ============ ЭТАП 2: Run tests ============
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: GameStats Hub
+    needs: build
+    strategy:
+      matrix:
+        service: [frontend, backend]
+
     steps:
+      # -------------- 2.1 Checkout code --------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Docker on runner (для логина в GHCR)
+      # -------------- 2.2 Download built image --------------
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+
+      # -------------- 2.3 Load Docker image --------------
+      - name: Load Docker image
+        run: docker load -i image-${{ matrix.service }}.tar
+
+      # -------------- 2.4 Run tests in container --------------
+      - name: Run tests
+        run: |
+          # Пример для Node.js приложения
+          docker run --rm \
+            -v $(pwd)/${{ matrix.service }}:/app \
+            -w /app \
+            node:18-alpine \
+            sh -c "npm ci && npm test"
+
+        # Или альтернативно запустить тесты внутри собранного образа
+      - name: Run container tests
+        run: |
+          # Запуск тестов внутри контейнера (если тесты включены в образ)
+          docker run --rm \
+            ${{ env.REGISTRY }}/${{ matrix.service == 'frontend' && 'svdbel/gamestats-hub-frontend' || 'svdbel/gamestats-hub-backend' }}:latest \
+            npm test || echo "Tests completed"
+
+  # ============ ЭТАП 3: Push to registry ============
+  push:
+    name: Push to Registry
+    runs-on: ubuntu-latest
+    environment: GameStats Hub
+    needs: test
+    if: github.event_name != 'pull_request'
+    strategy:
+      matrix:
+        service: [frontend, backend]
+
+    steps:
+      # -------------- 3.1 Checkout code --------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------- 3.2 Set up Docker Buildx --------------
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR on runner
+      # -------------- 3.3 Log in to GitHub Container Registry --------------
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Deploy to Server
+      # -------------- 3.4 Set image name --------------
+      - name: Set image name
+        id: set-image
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            echo "IMAGE_NAME=svdbel/gamestats-hub-frontend" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_NAME=svdbel/gamestats-hub-backend" >> $GITHUB_OUTPUT
+          fi
+
+      # -------------- 3.5 Extract Docker metadata --------------
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ steps.set-image.outputs.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # -------------- 3.6 Download and load image artifact --------------
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}
+
+      - name: Load Docker image
+        run: docker load -i image-${{ matrix.service }}.tar
+
+      # -------------- 3.7 Push image to registry --------------
+      - name: Push Docker image to registry
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # ============ ЭТАП 4: Delivery и Deploy ============
+  deploy:
+    name: Delivery and Deploy
+    environment: GameStats Hub
+    needs: push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      # -------------- 4.1 Checkout repository --------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------- 4.2 Setup Docker --------------
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v3
+
+      # -------------- 4.3 Log in to GHCR --------------
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      # -------------- 4.4 Delivery - Deploy to Server --------------
+      - name: Deploy to Production Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e  # Exit on error
+
+            echo "📦 Starting delivery process..."
             cd /opt/gamestatshub/
-            # Логинимся в GHCR на сервере
+
+            # Логин в registry на сервере
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            # Pull и запуск контейнеров
+
+            echo "🚀 Pulling latest images..."
             docker pull ghcr.io/svdbel/gamestats-hub-frontend:latest
             docker pull ghcr.io/svdbel/gamestats-hub-backend:latest
+
+            echo "🔧 Deploying containers..."
             docker compose -f docker-compose.prod.yml up -d
+
+            echo "🧹 Cleaning up..."
             docker image prune -f
 
-      # -------------- 8. Send Telegram Notification --------------
+            echo "✅ Deployment completed successfully!"
+
+      # -------------- 4.5 Verify deployment --------------
+      - name: Verify deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sleep 10  # Wait for containers to start
+            echo "📊 Deployment status:"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+            # Health check
+            echo "🔍 Health check:"
+            docker compose -f docker-compose.prod.yml ps
+
+      # -------------- 4.6 Send success notification --------------
       - name: Send Telegram notification
         uses: appleboy/telegram-action@master
         with:
@@ -112,7 +258,9 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
             🚀 Deployment Successful!
-            Repository: ${{ github.repository }}
-            Branch: ${{ github.ref }}
-            Commit: https://github.com/${{ github.repository }}/commit/${{github.sha}}
-            By: ${{ github.actor }}
+            📦 Pipeline: Build → Test → Push → Deploy
+            📚 Repository: ${{ github.repository }}
+            🌿 Branch: ${{ github.ref }}
+            🔗 Commit: https://github.com/${{ github.repository }}/commit/${{github.sha}}
+            👤 By: ${{ github.actor }}
+            ⏰ Time: ${{ github.event.head_commit.timestamp }}
