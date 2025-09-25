@@ -1,0 +1,105 @@
+---
+- name: Configure GameStats Hub production server
+  hosts: all
+  become: yes
+  vars:
+    app_user: "ubuntu"
+    app_dir: "/opt/gamestatshub"
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install required system packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable"
+        state: present
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        update_cache: yes
+
+    - name: Add user to docker group
+      user:
+        name: "{{ app_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install Docker Compose Plugin (v2)
+      apt:
+        name: docker-compose-plugin
+        state: present
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+
+    - name: Copy production docker-compose.prod.yml
+      copy:
+        src: ../../docker-compose.prod.yml
+        dest: "{{ app_dir }}/docker-compose.prod.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+
+    - name: Copy environment file
+      copy:
+        src: ../../.env.prod
+        dest: "{{ app_dir }}/.env.prod"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        # Если файла .env.prod еще нет, создадим пустой
+      when: not lookup('file', '../../.env.prod') | length > 0
+
+    - name: Ensure .env.prod exists
+      file:
+        path: "{{ app_dir }}/.env.prod"
+        state: touch
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+      when: not lookup('file', '../../.env.prod') | length > 0
+
+    - name: Log in to GitHub Container Registry
+      community.docker.docker_login:
+        registry: ghcr.io
+        username: "{{ ghcr_username }}"
+        password: "{{ ghcr_token }}"
+
+    - name: Pull latest images
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        files:
+          - docker-compose.prod.yml
+          - docker-compose.monitoring.yml
+          - docker-compose.logging.yml
+        pull: always
+
+    - name: Show running containers
+      command: docker ps
+      register: docker_ps_result
+
+    - name: Display running containers
+      debug:
+        var: docker_ps_result.stdout_lines

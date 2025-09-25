@@ -1,0 +1,55 @@
+---
+- name: Install and configure Node Exporter
+  hosts: all # Или группа серверов, где нужно установить Node Exporter
+  become: yes
+
+  vars:
+    node_exporter_version: "1.8.1" # Укажите актуальную версию
+    node_exporter_url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    node_exporter_archive: "node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    node_exporter_path: "/usr/local/bin/node_exporter"
+
+  tasks:
+    - name: 1. Create a user for node_exporter
+      ansible.builtin.user:
+        name: node_exporter
+        shell: /sbin/nologin
+        system: yes
+        create_home: no
+
+    - name: 2. Download Node Exporter archive
+      ansible.builtin.get_url:
+        url: "{{ node_exporter_url }}"
+        dest: "/tmp/{{ node_exporter_archive }}"
+        mode: "0644"
+
+    - name: 3. Extract Node Exporter binary
+      ansible.builtin.unarchive:
+        src: "/tmp/{{ node_exporter_archive }}"
+        dest: "/tmp/"
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: 4. Move binary to /usr/local/bin
+      ansible.builtin.copy:
+        src: "/tmp/node_exporter"
+        dest: "{{ node_exporter_path }}"
+        mode: "0755"
+        remote_src: yes
+        owner: node_exporter
+        group: node_exporter
+
+    - name: 5. Create systemd service file
+      ansible.builtin.template:
+        src: ../../monitoring/prometheus/node_exporter.service.j2
+        dest: /etc/systemd/system/node_exporter.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: 6. Reload systemd and start the service
+      ansible.builtin.systemd:
+        name: node_exporter
+        state: started
+        enabled: yes
+        daemon_reload: yes

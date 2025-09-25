@@ -1,0 +1,70 @@
+# Конфигурация для Grafana
+server {
+    listen 80;
+    server_name grafana.svdbel.org; # Замените на ваш домен для Grafana
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Конфигурация для Prometheus
+server {
+    listen 80;
+    server_name prometheus.svdbel.org; # Замените на ваш домен для Prometheus
+
+    location / {
+        proxy_pass http://localhost:9090;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Конфигурация для Alertmanager
+server {
+    listen 80;
+    server_name alertmanager.svdbel.org; # Замените на ваш домен для Alertmanager
+
+    location / {
+        proxy_pass http://localhost:9093;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+}
+
+# Конфигурация для Node exporter
+server {
+    listen 80;
+    server_name node-exporter.svdbel.org; 
+
+    location / {
+        proxy_pass http://localhost:9100;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Конфигурация для cadvisor
+server {
+    listen 80;
+    server_name cadvisor.svdbel.org; 
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

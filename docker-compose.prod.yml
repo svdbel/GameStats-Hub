@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ghcr.io/svdbel/gamestats-hub-frontend:latest
+    container_name: gamestats-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.prod
+
+  backend:
+    image: ghcr.io/svdbel/gamestats-hub-backend:latest
+    container_name: gamestats-backend-prod
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    env_file:
+      - .env.prod

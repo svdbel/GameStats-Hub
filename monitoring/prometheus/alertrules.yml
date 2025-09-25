@@ -1,0 +1,29 @@
+groups:
+  - name: example-alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage on {{ $labels.instance }} is currently at {{ $value }}%, which is above the 90% threshold."
+
+      - alert: ContainerHighCPUUsage
+        expr: sum(rate(container_cpu_usage_seconds_total{image!=""}[1m])) by (name) > 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on Docker container {{ $labels.name }}"
+          description: 'CPU usage for container {{ $labels.name }} is at {{ printf "%.2f" $value }} core-seconds per second, which is above 90% utilization.'

@@ -1,0 +1,62 @@
+---
+- name: Setup Nginx as reverse proxy for Grafana
+  hosts: all
+  become: yes # Запускать задачи с правами root
+
+  tasks:
+    - name: Install Nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+
+    - name: Configure Nginx reverse proxy for website
+      ansible.builtin.template:
+        src: ../../reverse-proxy/web.j2
+        dest: /etc/nginx/sites-available/web
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable new Nginx configuration for website
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/web
+        dest: /etc/nginx/sites-enabled/web
+        state: link
+
+    - name: Configure Nginx reverse proxy for monitoring stack
+      ansible.builtin.template:
+        src: ../../reverse-proxy/monitoring.j2
+        dest: /etc/nginx/sites-available/monitoring
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable new Nginx configuration for monitoring stack
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/monitoring
+        dest: /etc/nginx/sites-enabled/monitoring
+        state: link
+
+    - name: Configure Nginx reverse proxy for logging stack
+      ansible.builtin.template:
+        src: ../../reverse-proxy/logging.j2
+        dest: /etc/nginx/sites-available/logging
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable new Nginx configuration for logging stack
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/logging
+        dest: /etc/nginx/sites-enabled/logging
+        state: link
+
+    - name: Check Nginx configuration for syntax errors
+      ansible.builtin.command: nginx -t
+      changed_when: false
+
+    - name: Restart Nginx service
+      ansible.builtin.service:
+        name: nginx
+        state: restarted
+        enabled: yes

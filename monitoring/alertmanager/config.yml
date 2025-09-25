@@ -1,0 +1,17 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ["alertname"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: "telegram-receiver" # Отправляем все оповещения в Telegram
+
+receivers:
+  - name: "telegram-receiver"
+    telegram_configs:
+      - bot_token: "$TELEGRAM_BOT_TOKEN"
+        chat_id: "$TELEGRAM_CHAT_ID"
+        send_resolved: true
+        disable_notifications: false

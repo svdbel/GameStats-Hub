@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    :root {
+        --bg-color: #000000;
+        --card-bg: #111111;
+        --text-color: #FFFFFF;
+        --accent-color: #cccccc;
+        --secondary-accent: #888888;
+        --border-radius: 8px;
+        --shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    .section-title {
+        color: var(--text-color);
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .card {
+        background-color: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        margin-bottom: 1.5rem;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+    }
+
+    .loading-text {
+        color: var(--secondary-accent);
+        text-align: center;
+        padding: 2rem 0;
+        font-style: italic;
+    }
+
+    .player-card,
+    .hero-card,
+    .news-item {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .player-card:hover,
+    .hero-card:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .rank-badge {
+        background-color: var(--accent-color);
+        color: black;
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+
+    .player-card strong,
+    .hero-card strong,
+    .news-item strong {
+        color: var(--text-color);
+    }
+
+    .news-item div {
+        color: var(--text-color);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: var(--secondary-accent);
+        font-weight: 300;
+    }
+
+    .stat-value {
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .btn.refresh-btn {
+        background-color: var(--accent-color);
+        color: black;
+        border: none;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .btn.refresh-btn:hover {
+        background-color: #aaaaaa;
+    }
+
+    .news-item {
+        border-left: 3px solid var(--secondary-accent);
+    }
+
+    .news-date {
+        font-size: 0.8rem;
+        color: var(--secondary-accent);
+    }
+
+    /* Адаптивность для мобильных устройств */
+    @media (max-width: 768px) {
+
+        .col-lg-4,
+        .col-md-6,
+        .col-md-12 {
+            width: 100% !important;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="card">
+                <h3 class="section-title">Топ-10 игроков по MMR 2025</h3>
+                <div id="players-content">
+                    <div class="loading-text">Загрузка данных игроков...</div>
+                </div>
+                <button class="btn refresh-btn" id="refresh-players">Обновить данные</button>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6">
+            <div class="card">
+                <h3 class="section-title">Рейтинги героев 2025</h3>
+                <div id="ratings-content">
+                    <div class="loading-text">Загрузка рейтингов...</div>
+                </div>
+                <button class="btn refresh-btn" id="refresh-ratings">Обновить данные</button>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-12">
+            <div class="card">
+                <h3 class="section-title">Новости Dota 2 2025</h3>
+                <div id="news-content">
+                    <div class="loading-text">Загрузка новостей...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const contentElements = {
+        players: document.getElementById('players-content'),
+        ratings: document.getElementById('ratings-content'),
+        news: document.getElementById('news-content')
+    };
+
+    // Загрузка топ игроков
+    async function loadTopPlayers() {
+        contentElements.players.innerHTML = '<div class="loading-text">Загрузка данных игроков...</div>';
+        await new Promise(r => setTimeout(r, 800));
+
+        const topPlayers = [
+            { rank: 1, name: "Yatoro", mmr: 12560, wins: 3456, losses: 1567, country: "UA" },
+            { rank: 2, name: "Quinn", mmr: 12340, wins: 2987, losses: 1345, country: "US" },
+            { rank: 3, name: "Mira", mmr: 12180, wins: 3123, losses: 1456, country: "RU" },
+            { rank: 4, name: "Watson", mmr: 12050, wins: 2678, losses: 1234, country: "EU" },
+            { rank: 5, name: "dyrachyo", mmr: 11920, wins: 2890, losses: 1321, country: "RU" },
+            { rank: 6, name: "skiter", mmr: 11830, wins: 3012, losses: 1423, country: "DE" },
+            { rank: 7, name: "Nightfall", mmr: 11760, wins: 3234, losses: 1567, country: "KZ" },
+            { rank: 8, name: "Pure", mmr: 11690, wins: 2789, losses: 1298, country: "RU" },
+            { rank: 9, name: "Malr1ne", mmr: 11620, wins: 2456, losses: 1123, country: "BG" },
+            { rank: 10, name: "Kiyotaka", mmr: 11550, wins: 2678, losses: 1256, country: "CN" }
+        ];
+
+        let html = '';
+        topPlayers.forEach(p => {
+            const winRate = ((p.wins / (p.wins + p.losses)) * 100).toFixed(1);
+            html += `
+                <div class="player-card">
+                    <div><span class="rank-badge">${p.rank}</span> <strong>${p.name}</strong></div>
+                    <div class="mt-2">
+                        <div><span class="stat-label">MMR:</span> <span class="stat-value">${p.mmr}</span></div>
+                        <div><span class="stat-label">Победы/Поражения:</span> <span class="stat-value">${p.wins}/${p.losses}</span></div>
+                        <div><span class="stat-label">Процент побед:</span> <span class="stat-value">${winRate}%</span></div>
+                        <div><span class="stat-label">Страна:</span> <span class="stat-value">${p.country}</span></div>
+                    </div>
+                </div>
+            `;
+        });
+        contentElements.players.innerHTML = html;
+    }
+
+    // Загрузка рейтингов героев
+    async function loadRankings() {
+        contentElements.ratings.innerHTML = '<div class="loading-text">Загрузка рейтингов...</div>';
+        await new Promise(r => setTimeout(r, 800));
+
+        const heroRankings = [
+            { name: "Mars", pickRate: 28.7, winRate: 52.3, banRate: 18.9 },
+            { name: "Primal Beast", pickRate: 26.4, winRate: 51.8, banRate: 22.1 },
+            { name: "Hoodwink", pickRate: 24.9, winRate: 50.5, banRate: 15.6 },
+            { name: "Dawnbreaker", pickRate: 23.5, winRate: 49.8, banRate: 19.3 },
+            { name: "Marci", pickRate: 22.1, winRate: 48.7, banRate: 16.8 },
+            { name: "Void Spirit", pickRate: 20.8, winRate: 51.2, banRate: 14.5 },
+            { name: "Snapfire", pickRate: 19.6, winRate: 49.3, banRate: 12.7 },
+            { name: "Pangolier", pickRate: 18.4, winRate: 47.9, banRate: 17.2 },
+            { name: "Grimstroke", pickRate: 17.2, winRate: 50.1, banRate: 13.8 },
+            { name: "Dark Willow", pickRate: 16.5, winRate: 48.6, banRate: 15.1 }
+        ];
+
+        let html = '';
+        heroRankings.forEach((h, i) => {
+            html += `
+                <div class="hero-card">
+                    <div><span class="rank-badge">${i + 1}</span> <strong>${h.name}</strong></div>
+                    <div class="mt-2">
+                        <div><span class="stat-label">Частота выбора:</span> <span class="stat-value">${h.pickRate}%</span></div>
+                        <div><span class="stat-label">Процент побед:</span> <span class="stat-value">${h.winRate}%</span></div>
+                        <div><span class="stat-label">Частота банов:</span> <span class="stat-value">${h.banRate}%</span></div>
+                    </div>
+                </div>
+            `;
+        });
+        contentElements.ratings.innerHTML = html;
+    }
+
+    // Загрузка новостей
+    async function loadNews() {
+        contentElements.news.innerHTML = '<div class="loading-text">Загрузка новостей...</div>';
+        await new Promise(r => setTimeout(r, 800));
+
+        const newsItems = [
+            { date: '2025-09-24', title: 'Обновление Dota 2 — 24.09.2025', content: 'Вышел мини-патч, который исправил несколько ошибок и добавил новые косметические предметы.' },
+            { date: '2025-09-17', title: 'Team Falcons увековечены на Aegis', content: 'После победы на The International 2025, команда Team Falcons была увековечена на Эгиде Чемпионов.' },
+            { date: '2025-09-16', title: 'Team Falcons — чемпионы The International 2025', content: 'Team Falcons стали чемпионами The International 2025 в Гамбурге, завершив год с чемпионским титулом.' },
+            { date: '2025-09-12', title: 'Осенний сезон Dota Plus и исправление ошибок', content: 'Запущен осенний сезон Dota Plus, а также было исправлено несколько ошибок, связанных с компендиумом TI2025.' },
+            { date: '2025-09-09', title: 'Начало The International 2025', content: 'Начался основной этап The International 2025. Миллионы фанатов следят за турниром и активно участвуют в фэнтези-лиге.' }
+        ];
+
+        let html = '';
+        newsItems.forEach(item => {
+            html += `
+                <div class="news-item">
+                    <div class="news-date">${item.date}</div>
+                    <div><strong>${item.title}</strong></div>
+                    <div class="mt-1">${item.content}</div>
+                </div>
+            `;
+        });
+        contentElements.news.innerHTML = html;
+    }
+
+    // Обработчики обновления
+    document.getElementById('refresh-players')?.addEventListener('click', loadTopPlayers);
+    document.getElementById('refresh-ratings')?.addEventListener('click', loadRankings);
+
+    // Инициализация
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTopPlayers();
+        loadRankings();
+        loadNews();
+    });
+</script>
+{% endblock %}

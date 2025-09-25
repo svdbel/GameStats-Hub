@@ -1,0 +1,69 @@
+---
+- name: Configure monitoring infrastructure
+  hosts: all # или укажите конкретную группу хостов
+  become: yes # если нужны права sudo
+  vars:
+    app_user: "ubuntu"
+    app_dir: "/opt/gamestatshub"
+
+  tasks:
+    - name: Ensure monitoring directory exists
+      file:
+        path: "{{ app_dir }}/monitoring"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0755"
+
+    - name: Copy prometheus config to server
+      copy:
+        src: ../../monitoring/prometheus/
+        dest: "{{ app_dir }}/monitoring/prometheus/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy grafana config to server
+      copy:
+        src: ../../monitoring/grafana/
+        dest: "{{ app_dir }}/monitoring/grafana/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy alertmanager config to server
+      copy:
+        src: ../../monitoring/alertmanager/
+        dest: "{{ app_dir }}/monitoring/alertmanager/"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Copy production docker-compose.monitoring.yml
+      copy:
+        src: ../../docker-compose.monitoring.yml
+        dest: "{{ app_dir }}/docker-compose.monitoring.yml"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+        directory_mode: "0755"
+
+    - name: Start monitoring stack
+      command:
+        cmd: docker compose -f {{ app_dir }}/docker-compose.monitoring.yml up -d
+        chdir: "{{ app_dir }}"
+      become: yes
+      become_user: "{{ app_user }}"
+      args:
+        creates: "{{ app_dir }}/.docker-compose-started" # опционально: чтобы избежать повторного запуска
+
+    - name: Show running containers
+      command: docker ps
+      register: docker_ps_result
+
+    - name: Display running containers
+      debug:
+        var: docker_ps_result.stdout_lines

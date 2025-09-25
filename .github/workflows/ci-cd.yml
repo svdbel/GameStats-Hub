@@ -1,0 +1,118 @@
+name: CI/CD Pipeline for GameStats Hub
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  test-build-push:
+    name: Test, Build and Push Docker Images
+    runs-on: ubuntu-latest
+    environment: GameStats Hub
+    strategy:
+      matrix:
+        service: [frontend, backend]
+    steps:
+      # -------------- 1. Checkout code --------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -------------- 2. Set up Docker Buildx --------------
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # -------------- 3. Log in to GitHub Container Registry --------------
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}  # Убедитесь, что этот секрет существует!
+
+      # -------------- 4. Определяем имя образа на основе сервиса --------------
+      - name: Set image name
+        id: set-image
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            echo "IMAGE_NAME=svdbel/gamestats-hub-frontend" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_NAME=svdbel/gamestats-hub-backend" >> $GITHUB_OUTPUT
+          fi
+
+      # -------------- 5. Extract metadata (tags, labels) for Docker --------------
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ steps.set-image.outputs.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # -------------- 6. Build and push Docker image --------------
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.service }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # -------------- 7. Deployment (Triggered only on push to main) --------------
+  deploy:
+    name: Deploy to Production
+    environment: GameStats Hub
+    needs: test-build-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker on runner (для логина в GHCR)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR on runner
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/gamestatshub/
+            # Логинимся в GHCR на сервере
+            echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            # Pull и запуск контейнеров
+            docker pull ghcr.io/svdbel/gamestats-hub-frontend:latest
+            docker pull ghcr.io/svdbel/gamestats-hub-backend:latest
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f
+
+      # -------------- 8. Send Telegram Notification --------------
+      - name: Send Telegram notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 Deployment Successful!
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref }}
+            Commit: https://github.com/${{ github.repository }}/commit/${{github.sha}}
+            By: ${{ github.actor }}
