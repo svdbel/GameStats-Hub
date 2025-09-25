@@ -10,7 +10,6 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # ============ ЭТАП 1: Build Docker image ============
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest
@@ -56,7 +55,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ============ ЭТАП 2: Run tests ============
   test:
     name: Run Simple Tests
     runs-on: ubuntu-latest
@@ -72,23 +70,21 @@ jobs:
 
       - name: Simple file structure test
         run: |
-          echo "🔍 Checking ${{ matrix.service }} structure..."
+          echo "Checking ${{ matrix.service }} structure..."
           ls -la ./${{ matrix.service }}/
 
-          # Проверяем основные файлы
           if [ -f "./${{ matrix.service }}/Dockerfile" ]; then
-            echo "✅ Dockerfile exists"
+            echo "Dockerfile exists"
           else
-            echo "❌ Dockerfile missing"
+            echo "Dockerfile missing"
             exit 1
           fi
 
       - name: Dockerfile syntax test
         run: |
-          echo "📋 Validating Dockerfile syntax..."
+          echo "Validating Dockerfile syntax..."
           docker build ./${{ matrix.service }} --no-cache --pull --target=build-stage || true
 
-  # ============ ЭТАП 3: Push to registry ============
   push:
     name: Push to Registry
     runs-on: ubuntu-latest
@@ -143,7 +139,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ============ ЭТАП 4: Delivery and Deploy ============
   delivery-deploy:
     name: Delivery and Deploy
     environment: GameStats Hub
@@ -160,25 +155,21 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
-            echo "🚚 Starting Delivery process..."
+            echo "Starting Delivery process..."
             cd /opt/gamestatshub/
 
-            # Логин в registry
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Delivery - получение новых образов
-            echo "📦 Pulling latest images..."
+            echo "Pulling latest images..."
             docker pull ghcr.io/svdbel/gamestats-hub-frontend:latest
             docker pull ghcr.io/svdbel/gamestats-hub-backend:latest
 
-            # Deploy - развертывание
-            echo "🚀 Deploying services..."
+            echo "Deploying services..."
             docker compose -f docker-compose.prod.yml up -d frontend backend
 
-            # Очистка
             docker image prune -f
 
-            echo "✅ Delivery and Deploy completed!"
+            echo "Delivery and Deploy completed!"
 
       - name: Verify deployment
         uses: appleboy/ssh-action@master
@@ -187,18 +178,16 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "🔍 Verifying deployment..."
+            echo "Verifying deployment..."
             cd /opt/gamestatshub/
 
-            # Проверяем статус контейнеров
-            echo "📊 Frontend status:"
+            echo "Frontend status:"
             docker ps --filter "name=frontend" --format "table {{.Names}}\t{{.Status}}\t{{.RunningFor}}"
 
-            echo "📊 Backend status:"
+            echo "Backend status:"
             docker ps --filter "name=backend" --format "table {{.Names}}\t{{.Status}}\t{{.RunningFor}}"
 
-            # Простая проверка через docker compose
-            echo "🎯 Docker compose status:"
+            echo "Docker compose status:"
             docker compose -f docker-compose.prod.yml ps frontend backend
 
       - name: Send success notification
@@ -207,8 +196,8 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            🚀 Delivery and Deploy Successful!
-            📚 Repository: ${{ github.repository }}
-            👤 By: ${{ github.actor }}
-            ⏰ Completed at: ${{ github.event.head_commit.timestamp }}
-            🔗 Commit: https://github.com/${{ github.repository }}/commit/${{github.sha}}
+            Delivery and Deploy Successful!
+            Repository: ${{ github.repository }}
+            By: ${{ github.actor }}
+            Completed at: ${{ github.event.head_commit.timestamp }}
+            Commit: https://github.com/${{ github.repository }}/commit/${{github.sha}}
