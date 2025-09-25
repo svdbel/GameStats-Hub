@@ -1,0 +1,16 @@
+---
+- name: Disable SSH password login
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Set PasswordAuthentication to no
+      replace:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication.*"
+        replace: "PasswordAuthentication no"
+
+    - name: Restart SSH
+      systemd:
+        name: ssh
+        state: restarted
