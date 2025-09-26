@@ -66,20 +66,20 @@
 
     - name: Copy environment file
       copy:
-        src: ../../.env.prod
-        dest: "{{ app_dir }}/.env.prod"
+        src: ../../.env
+        dest: "{{ app_dir }}/.env"
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
-        # Если файла .env.prod еще нет, создадим пустой
-      when: not lookup('file', '../../.env.prod') | length > 0
+        # Если файла .env еще нет, создадим пустой
+      when: not lookup('file', '../../.env') | length > 0
 
-    - name: Ensure .env.prod exists
+    - name: Ensure .env exists
       file:
-        path: "{{ app_dir }}/.env.prod"
+        path: "{{ app_dir }}/.env"
         state: touch
         owner: "{{ app_user }}"
         group: "{{ app_user }}"
-      when: not lookup('file', '../../.env.prod') | length > 0
+      when: not lookup('file', '../../.env') | length > 0
 
     - name: Log in to GitHub Container Registry
       community.docker.docker_login:
