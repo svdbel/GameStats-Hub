@@ -5,7 +5,8 @@
   vars:
     app_user: "ubuntu"
     app_dir: "/opt/gamestatshub"
-
+  vars_files:
+    - vars/secrets.yml
   tasks:
     - name: Update apt package cache
       apt:
