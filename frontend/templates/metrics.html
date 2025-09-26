@@ -1,9 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
-<iframe
-  src="https://grafana.svdbel.org/d-solo/13025978-601f-45ed-9b08-28b374ac4b35/dota-2?orgId=1&from=1758877990521&to=1758878290521&timezone=browser&refresh=5s&panelId=1&__feature.dashboardSceneSolo=true"
-  width="450"
-  height="200"
-  frameborder="0"
-></iframe>
+<div class="dashboard-grid">
+    <iframe
+        src="https://grafana.svdbel.org/d-solo/13025978-601f-45ed-9b08-28b374ac4b35/dota-2?orgId=1&from=1758877990521&to=1758878290521&timezone=browser&refresh=5s&panelId=1&__feature.dashboardSceneSolo=true"
+        frameborder="0">
+    </iframe>
+    <iframe 
+        src="https://grafana.svdbel.org/d-solo/13025978-601f-45ed-9b08-28b374ac4b35/dota-2?orgId=1&from=1758896323293&to=1758896623293&timezone=browser&refresh=5s&panelId=panel-2&__feature.dashboardSceneSolo=true" 
+        frameborder="0">
+    </iframe>
+</div>
+
+<style>
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* две равные колонки */
+    grid-gap: 10px;
+    height: 100vh; /* на всю высоту экрана */
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.dashboard-grid iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+</style>
 {% endblock %}
