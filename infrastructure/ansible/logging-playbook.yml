@@ -1,6 +1,6 @@
 ---
 - name: Configure ELK logging infrastructure
-  hosts: all # или укажите конкретную группу хостов
+  hosts: prod
   become: yes # если нужны права sudo
   vars:
     app_user: "ubuntu"

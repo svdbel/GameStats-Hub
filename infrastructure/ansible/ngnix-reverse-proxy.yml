@@ -1,6 +1,6 @@
 ---
 - name: Setup Nginx as reverse proxy for Grafana
-  hosts: all
+  hosts: prod
   become: yes # Запускать задачи с правами root
 
   tasks:

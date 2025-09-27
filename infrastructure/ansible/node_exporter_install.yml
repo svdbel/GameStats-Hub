@@ -1,6 +1,6 @@
 ---
 - name: Install and configure Node Exporter
-  hosts: all # Или группа серверов, где нужно установить Node Exporter
+  hosts: prod
   become: yes
 
   vars:
