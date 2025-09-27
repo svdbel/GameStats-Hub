@@ -6,14 +6,10 @@ terraform {
     }
   }
 
-  # backend "gcs" {
-  #   bucket = "gamestatshub" # ← Замени на реальное имя бакета
-  #   prefix = "terraform/state"
-  # }
 }
 
 provider "google" {
-  project = "gamestatshub-472706"
+  project = "gamestats-473407"
   region  = var.region
   zone    = var.zone
 }
@@ -50,15 +46,29 @@ resource "google_compute_subnetwork" "vpc_subnet" {
   depends_on = [google_compute_network.vpc_network]
 }
 
-# =============== ШАГ 3: Создаём статический IP ===============
-resource "google_compute_address" "static_ip" {
-  name   = "gamestatshub-static-ip"
+# ---
+## ШАГ 3: Создаём статические IP
+# ---
+
+# =============== 3.1: Статический IP для Prod-VM ===============
+resource "google_compute_address" "static_ip_prod" {
+  name   = "gamestatshub-static-ip-prod"
   region = var.region
 
   depends_on = [google_project_service.required_apis]
 }
 
-# =============== ШАГ 4: Firewall правила ===============
+# =============== 3.2: Статический IP для Backup-VM 🆕 ===============
+resource "google_compute_address" "static_ip_backup" {
+  name   = "gamestatshub-static-ip-backup"
+  region = var.region
+
+  depends_on = [google_project_service.required_apis]
+}
+
+# ---
+## ШАГ 4: Firewall правила
+# ---
 resource "google_compute_firewall" "ssh_http" {
   name    = "allow-ssh-http"
   network = google_compute_network.vpc_network.name
@@ -72,12 +82,16 @@ resource "google_compute_firewall" "ssh_http" {
   # source_ranges = ["YOUR_IP/32"]   # ← Раскомментируй и замени YOUR_IP
   source_ranges = ["0.0.0.0/0"] # ← Сейчас разрешено всем (для теста)
 
-  target_tags = ["gamestatshub-server"]
+  target_tags = ["gamestatshub-server", "gamestatshub-backup"]
 
   depends_on = [google_compute_network.vpc_network]
 }
 
-# =============== ШАГ 5: Создаём ВМ ===============
+# ---
+## ШАГ 5: Создаём ВМ
+# ---
+
+# =============== 5.1: Основная ВМ (Prod) ===============
 resource "google_compute_instance" "vm_instance" {
   name         = "gamestatshub-prod"
   machine_type = "e2-medium"
@@ -96,7 +110,7 @@ resource "google_compute_instance" "vm_instance" {
     network    = google_compute_network.vpc_network.name
     subnetwork = google_compute_subnetwork.vpc_subnet.name
     access_config {
-      nat_ip = google_compute_address.static_ip.address # ← Статический IP!
+      nat_ip = google_compute_address.static_ip_prod.address # ← Используем статический IP Prod
     }
   }
 
@@ -104,7 +118,6 @@ resource "google_compute_instance" "vm_instance" {
     ssh-keys = "${var.ssh_user}:${file(var.ssh_pub_key_path)}"
   }
 
-  # Провижининг: можно использовать для запуска Ansible (но лучше через CI/CD)
   provisioner "remote-exec" {
     inline = [
       "echo 'VM is ready for Ansible'",
@@ -115,23 +128,83 @@ resource "google_compute_instance" "vm_instance" {
       type        = "ssh"
       user        = var.ssh_user
       private_key = file(var.ssh_priv_key_path)
-      host        = google_compute_address.static_ip.address
+      host        = google_compute_address.static_ip_prod.address
     }
   }
 
   depends_on = [
-    google_compute_address.static_ip,
+    google_compute_address.static_ip_prod,
     google_compute_firewall.ssh_http
   ]
 }
 
-# =============== OUTPUT ===============
-output "server_public_ip" {
-  description = "Статический внешний IP-адрес сервера"
-  value       = google_compute_address.static_ip.address
+# =============== 5.2: Бэкап ВМ (Backup) ===============
+resource "google_compute_instance" "vm_backup_instance" {
+  name         = "gamestatshub-backup"
+  machine_type = "e2-small"
+  zone         = var.zone
+
+  tags = ["gamestatshub-backup"]
+
+  boot_disk {
+    initialize_params {
+      image = "ubuntu-os-cloud/ubuntu-2204-lts"
+      size  = 10
+    }
+  }
+
+  network_interface {
+    network    = google_compute_network.vpc_network.name
+    subnetwork = google_compute_subnetwork.vpc_subnet.name
+    access_config {
+      nat_ip = google_compute_address.static_ip_backup.address # 💡 Назначаем статический IP для Backup!
+    }
+  }
+
+  metadata = {
+    ssh-keys = "${var.ssh_user}:${file(var.ssh_pub_key_path)}"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo 'Backup VM is ready'",
+      "sudo apt-get update && sudo apt-get install -y rsync"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = var.ssh_user
+      private_key = file(var.ssh_priv_key_path)
+      # Используем назначенный внешний IP для подключения
+      host = google_compute_address.static_ip_backup.address
+    }
+  }
+
+  depends_on = [
+    google_compute_address.static_ip_backup, # Новая зависимость
+    google_compute_firewall.ssh_http
+  ]
 }
 
-output "server_internal_ip" {
-  description = "Внутренний IP-адрес сервера"
+# ---
+## OUTPUT
+# ---
+output "server_public_ip_prod" {
+  description = "Статический внешний IP-адрес основного сервера"
+  value       = google_compute_address.static_ip_prod.address
+}
+
+output "server_internal_ip_prod" {
+  description = "Внутренний IP-адрес основного сервера"
   value       = google_compute_instance.vm_instance.network_interface[0].network_ip
+}
+
+output "server_public_ip_backup" {
+  description = "Статический внешний IP-адрес бэкап-сервера 🆕"
+  value       = google_compute_address.static_ip_backup.address
+}
+
+output "server_internal_ip_backup" {
+  description = "Внутренний IP-адрес бэкап-сервера"
+  value       = google_compute_instance.vm_backup_instance.network_interface[0].network_ip
 }
