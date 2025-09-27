@@ -1,7 +1,7 @@
 cluster.name: "elk-cluster"
 network.host: 0.0.0.0
 http.port: 9200
-xpack.security.enabled: false  # Добавьте эту строку для отключения безопасности
+xpack.security.enabled: false # Добавьте эту строку для отключения безопасности
+xpack.security.enrollment.enabled: true
 discovery.type: single-node
 path.data: /usr/share/elasticsearch/data
-
