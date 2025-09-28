@@ -89,3 +89,76 @@
     - name: D. Вывод результата копирования
       ansible.builtin.debug:
         msg: "Копирование завершено. Бэкап доступен на {{ dest_host }} в папке: {{ final_dest_dir }}. Симлинк 'latest' обновлен."
+
+- name: 4. Настройка автоматического бэкапа через cron
+  hosts: prod
+  gather_facts: no
+  become: yes
+  tags: ["cron_setup"]
+
+  vars:
+    cron_user: "root" # Меняем на root для доступа к Docker volumes
+    cron_name: "docker_volumes_backup"
+    backup_script_path: "/usr/local/bin/backup_docker_volumes.sh"
+    cron_schedule: "0 2 * * *" # Ежедневно в 2:00 ночи
+
+  tasks:
+    - name: A. Копирование скрипта бэкапа на хост
+      ansible.builtin.copy:
+        src: "files/backup_docker_volumes.sh"
+        dest: "{{ backup_script_path }}"
+        owner: "root"
+        group: "root"
+        mode: "0755"
+      vars:
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+
+    - name: B. Замена переменных в скрипте бэкапа
+      ansible.builtin.replace:
+        path: "{{ backup_script_path }}"
+        regexp: "{{ item.search }}"
+        replace: "{{ item.replace }}"
+      loop:
+        - {
+            search: "DEST_HOST=\"\\{\\{ groups\\['backup'\\]\\[0\\] \\}\\}\"",
+            replace: 'DEST_HOST="{{ groups[''backup''][0] }}"',
+          }
+        - {
+            search: "DEST_PATH_NAME=\"\\{\\{ inventory_hostname \\}\\}\"",
+            replace: 'DEST_PATH_NAME="{{ inventory_hostname }}"',
+          }
+
+    - name: C. Добавление задания в cron
+      ansible.builtin.cron:
+        name: "{{ cron_name }}"
+        user: "{{ cron_user }}"
+        job: "{{ backup_script_path }} >> /var/log/backup_docker_volumes.log 2>&1"
+        minute: "{{ cron_schedule.split()[0] }}"
+        hour: "{{ cron_schedule.split()[1] }}"
+        day: "{{ cron_schedule.split()[2] }}"
+        month: "{{ cron_schedule.split()[3] }}"
+        weekday: "{{ cron_schedule.split()[4] }}"
+
+    - name: D. Создание лог-файла с правильными правами
+      ansible.builtin.file:
+        path: "/var/log/backup_docker_volumes.log"
+        state: touch
+        owner: "root"
+        group: "root"
+        mode: "0644"
+
+    - name: E. Проверка настроенного cron
+      ansible.builtin.command: crontab -l
+      register: cron_check
+
+    - name: F. Вывод информации о настройке cron
+      ansible.builtin.debug:
+        msg: |
+          Автоматический бэкап настроен!
+          Расписание: {{ cron_schedule }}
+          Скрипт: {{ backup_script_path }}
+          Лог-файл: /var/log/backup_docker_volumes.log
+          Пользователь: {{ cron_user }}
+
+          Текущие задания cron:
+          {{ cron_check.stdout }}
