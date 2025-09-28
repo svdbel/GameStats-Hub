@@ -88,60 +88,91 @@
 **CI/CD полностью автоматизирован** - код из `main` ветки автоматически становится продакшен-версией!
 
 graph TD
-    %% Subgraphs and Components Definition
-    subgraph "I. Инфраструктура и Настройка (IaC)"
-        TF(fa:fa-file-code Terraform) -- "1. Создает VPC, VM, Firewall в GCP" --> GCP(fab:fa-google GCP Cloud)
-        ANSIBLE(fa:fa-wrench Ansible) -- "2. Конфигурирует VM" --> GCP
-        ANSIBLE -- "Устанавливает" --> Docker(fab:fa-docker Docker Runtime)
-        ANSIBLE -- "Настраивает Стек" --> MONITORING_STACK(fa:fa-chart-line Мониторинг)
-        ANSIBLE -- "Настраивает Стек" --> LOGGING_STACK(fa:fa-stream Логирование)
-        ANSIBLE -- "Настраивает" --> NGINX(fa:fa-share-alt Nginx Reverse Proxy)
-        ANSIBLE -- "Настраивает" --> BACKUP(fa:fa-save Backup: scp -r)
+    %% Infrastructure Provisioning & Configuration
+    subgraph "I. Инфраструктура как код (IaC)"
+        Terraform["fa:fa-code Terraform"] -- "Создает VPC, VM, Firewall" --> GCP["fab:fa-google GCP Cloud"]
+        Ansible["fa:fa-wrench Ansible"] -- "Конфигурирует сервер" --> GCP
     end
 
+    %% CI/CD Pipeline
     subgraph "II. CI/CD Pipeline (GitHub Actions)"
-        GH_VCS(fab:fa-github GitHub Main Branch) -- "Push/Merge" --> GH_ACTIONS(fab:fa-github-actions GitHub Actions)
-        GH_ACTIONS -- "3. Собирает Образы" --> DOCKER_BUILD(fab:fa-docker Build Frontend/Backend)
-        DOCKER_BUILD -- "4. Пушит Образы" --> GITHUB_CR(fa:fa-database GitHub Container Registry)
-        GH_ACTIONS -- "5. Деплой (SSH/Deploy)" --> PROD_VM(fa:fa-server Продакшен VM (GCP))
-        GH_ACTIONS -- "6. Уведомление" --> TELEGRAM(fab:fa-telegram Telegram Bot)
+        GitHub["fab:fa-github GitHub Main"] -- "Push/Merge" --> GitHubActions["fab:fa-github-actions GitHub Actions"]
+        GitHubActions -- "Сборка образов" --> DockerBuild["fab:fa-docker Build Images"]
+        DockerBuild -- "Публикация" --> GHCR["fa:fa-database GitHub Container Registry"]
+        GitHubActions -- "Деплой на сервер" --> ProductionVM["fa:fa-server Production VM"]
+        GitHubActions -- "Уведомление" --> TelegramBot["fab:fa-telegram Telegram Bot"]
     end
 
-    subgraph "III. Продакшен Окружение (PROD_VM)"
-        PROD_VM -- "Запускает" --> FRONTEND(fa:fa-desktop Frontend Container)
-        PROD_VM -- "Запускает" --> BACKEND(fa:fa-cogs Backend Container)
-        PROD_VM -- "Хостит" --> MONITORING_STACK
-        PROD_VM -- "Хостит" --> LOGGING_STACK
-        PROD_VM -- "Хостит" --> NGINX
-        NGINX -- "https://gamestats.svdbel.org" --> FRONTEND
+    %% Production Environment
+    subgraph "III. Продакшен окружение"
+        ProductionVM -- "Запускает" --> DockerContainers["fab:fa-docker Docker Containers"]
+        
+        DockerContainers --> Frontend["fa:fa-desktop Frontend Container"]
+        DockerContainers --> Backend["fa:fa-cogs Backend Container"]
+        DockerContainers --> Nginx["fa:fa-share-alt Nginx Reverse Proxy"]
+        
+        Nginx -- "https://gamestats.svdbel.org" --> Frontend
+        Frontend -- "API запросы" --> Backend
+        Backend -- "Внешние данные" --> OpenDotaAPI["fa:fa-gamepad OpenDota API"]
     end
 
-    subgraph "IV. Сервисы Мониторинга и Логирования"
-        MONITORING_STACK -- "Стек" --> PROM(fa:fa-fire Prometheus)
-        MONITORING_STACK -- "Стек" --> GRAFANA(fa:fa-chart-bar Grafana)
-        MONITORING_STACK -- "Стек" --> ALERT_M(fa:fa-bell AlertManager)
-        MONITORING_STACK -- "Стек" --> CADVISOR(fa:fa-docker Cadvisor)
-        MONITORING_STACK -- "Стек" --> NODE_EXP(fa:fa-microchip Node Exporter)
-
-        LOGGING_STACK -- "Стек" --> ELASTIC(fa:fa-search Elasticsearch)
-        LOGGING_STACK -- "Стек" --> KIBANA(fa:fa-book Kibana)
-        LOGGING_STACK -- "Стек" --> LOGSTASH(fa:fa-inbox Logstash)
-        LOGGING_STACK -- "Стек" --> FILEBEAT(fa:fa-file-alt Filebeat)
+    %% Monitoring Stack
+    subgraph "IV. Стек мониторинга"
+        MonitoringStack["fa:fa-chart-line Monitoring Stack"] --> Prometheus["fa:fa-fire Prometheus"]
+        MonitoringStack --> Grafana["fa:fa-chart-bar Grafana"]
+        MonitoringStack --> AlertManager["fa:fa-bell AlertManager"]
+        MonitoringStack --> Cadvisor["fa:fa-docker Cadvisor"]
+        MonitoringStack --> NodeExporter["fa:fa-microchip Node Exporter"]
+        
+        Prometheus -- "Сбор метрик" --> ProductionVM
+        Grafana -- "Визуализация" --> Prometheus
+        AlertManager -- "Алерты" --> TelegramBot
     end
 
-    %% Data Flow
-    FRONTEND -- "API Calls" --> BACKEND
-    BACKEND -- "Использует API" --> DOTA_API(fa:fa-gamepad OpenDota API)
+    %% Logging Stack
+    subgraph "V. Стек логирования (ELK)"
+        LoggingStack["fa:fa-stream Logging Stack"] --> Elasticsearch["fa:fa-search Elasticsearch"]
+        LoggingStack --> Kibana["fa:fa-book Kibana"]
+        LoggingStack --> Logstash["fa:fa-inbox Logstash"]
+        LoggingStack --> Filebeat["fa:fa-file-alt Filebeat"]
+        
+        Filebeat -- "Сбор логов" --> ProductionVM
+        Kibana -- "Аналитика логов" --> Elasticsearch
+    end
 
-    %% Styling (Для лучшей наглядности)
-    classDef infra fill:#DDEBF7,stroke:#333,stroke-width:2px;
-    class GCP,TF,ANSIBLE infra;
+    %% Backup
+    subgraph "VI. Резервное копирование"
+        Backup["fa:fa-save Backup System"] -- "scp -r docker volumes" --> BackupStorage["fa:fa-database Backup Storage"]
+    end
 
-    classDef ci_cd fill:#FFF2CC,stroke:#333,stroke-width:2px;
-    class GH_VCS,GH_ACTIONS,GITHUB_CR ci_cd;
+    %% Local Development
+    subgraph "VII. Локальная разработка"
+        LocalDev["fa:fa-laptop Local Machine"] --> DockerCompose["fab:fa-docker docker-compose up --build"]
+        DockerCompose --> LocalFrontend["http://localhost:5000"]
+        DockerCompose --> LocalBackend["http://localhost:5001"]
+    end
 
-    classDef prod fill:#E2F0D9,stroke:#333,stroke-width:2px;
-    class PROD_VM,FRONTEND,BACKEND,NGINX prod;
-
-    classDef tools fill:#FBE4D5,stroke:#333,stroke-width:2px;
-    class MONITORING_STACK,LOGGING_STACK,TELEGRAM,DOTA_API tools;
+    %% Define Styles
+    style Terraform fill:#623CE4,stroke:#333,stroke-width:1px,color:#fff
+    style Ansible fill:#EE0000,stroke:#333,stroke-width:1px,color:#fff
+    style GCP fill:#4285F4,stroke:#333,stroke-width:1px,color:#fff
+    style GitHub fill:#181717,stroke:#333,stroke-width:1px,color:#fff
+    style GitHubActions fill:#2088FF,stroke:#333,stroke-width:1px,color:#fff
+    style GHCR fill:#2496ED,stroke:#333,stroke-width:1px,color:#fff
+    style ProductionVM fill:#34A853,stroke:#333,stroke-width:1px,color:#fff
+    style Frontend fill:#FF6D00,stroke:#333,stroke-width:1px,color:#fff
+    style Backend fill:#FF6D00,stroke:#333,stroke-width:1px,color:#fff
+    style Nginx fill:#009639,stroke:#333,stroke-width:1px,color:#fff
+    style OpenDotaAPI fill:#1DA1F2,stroke:#333,stroke-width:1px,color:#fff
+    style Prometheus fill:#E6522C,stroke:#333,stroke-width:1px,color:#fff
+    style Grafana fill:#F46800,stroke:#333,stroke-width:1px,color:#fff
+    style AlertManager fill:#FF9900,stroke:#333,stroke-width:1px,color:#fff
+    style Cadvisor fill:#2496ED,stroke:#333,stroke-width:1px,color:#fff
+    style NodeExporter fill:#8E44AD,stroke:#333,stroke-width:1px,color:#fff
+    style Elasticsearch fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Kibana fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Logstash fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Filebeat fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style TelegramBot fill:#0088CC,stroke:#333,stroke-width:1px,color:#fff
+    style Backup fill:#795548,stroke:#333,stroke-width:1px,color:#fff
+    style LocalDev fill:#9C27B0,stroke:#333,stroke-width:1px,color:#fff
