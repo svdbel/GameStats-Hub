@@ -88,40 +88,69 @@
 **CI/CD полностью автоматизирован** - код из `main` ветки автоматически становится продакшен-версией!
 
 # GameStats Hub Architecture
-
 ```mermaid
 graph TD
-    subgraph "Infrastructure as Code"
-        TF[Terraform] --> GCP[GCP Cloud]
-        ANS[Ansible] --> GCP
+    %% Infrastructure Provisioning & Configuration
+    subgraph "I. Инфраструктура как код (IaC)"
+        Terraform[Terraform] -- "Создает VPC, VM, Firewall" --> GCP[GCP Cloud]
+        Ansible[Ansible] -- "Конфигурирует сервер" --> GCP
     end
-    
-    subgraph "CI/CD Pipeline"
-        GH[GitHub Main] --> GHA[GitHub Actions]
-        GHA --> BUILD[Build Docker Images]
-        BUILD --> REGISTRY[GH Container Registry]
-        GHA --> DEPLOY[Deploy to Production]
-        GHA --> NOTIFY[Send Telegram Notification]
-    end
-    
-    subgraph "Production"
-        VM[GCP VM] --> APP[Application Containers]
-        APP --> FE[Frontend]
-        APP --> BE[Backend]
-        FE --> BE
-        BE --> API[OpenDota API]
-    end
-    
-    subgraph "Monitoring"
-        PROM[Prometheus] --> GRAF[Grafana]
-        NODE[Node Exporter] --> PROM
-    end
-    
-    subgraph "Logging"
-        FILEBEAT[Filebeat] --> ELK[ELK Stack]
-        ELK --> KIBANA[Kibana]
-    end
-    
-    NOTIFY --> TG[Telegram Bot]
-```
 
+    %% CI/CD Pipeline
+    subgraph "II. CI/CD Pipeline (GitHub Actions)"
+        GitHub[GitHub Main] -- "Push/Merge" --> GitHubActions[GitHub Actions]
+        GitHubActions -- "Сборка образов" --> DockerBuild[Build Images]
+        DockerBuild -- "Публикация" --> GHCR[GitHub Container Registry]
+        GitHubActions -- "Деплой на сервер" --> ProductionVM[Production VM]
+        GitHubActions -- "Уведомление" --> TelegramBot[Telegram Bot]
+    end
+
+    %% Production Environment
+    subgraph "III. Продакшен окружение"
+        ProductionVM -- "Запускает" --> DockerContainers[Docker Containers]
+        
+        DockerContainers --> Frontend[Frontend Container]
+        DockerContainers --> Backend[Backend Container]
+        DockerContainers --> Nginx[Nginx Reverse Proxy]
+        
+        Nginx -- "https://gamestats.svdbel.org" --> Frontend
+        Frontend -- "API запросы" --> Backend
+        Backend -- "Внешние данные" --> OpenDotaAPI[OpenDota API]
+    end
+
+    %% Monitoring Stack
+    subgraph "IV. Стек мониторинга"
+        MonitoringStack[Monitoring Stack] --> Prometheus[Prometheus]
+        MonitoringStack --> Grafana[Grafana]
+        MonitoringStack --> AlertManager[AlertManager]
+        MonitoringStack --> Cadvisor[Cadvisor]
+        MonitoringStack --> NodeExporter[Node Exporter]
+        
+        Prometheus -- "Сбор метрик" --> ProductionVM
+        Grafana -- "Визуализация" --> Prometheus
+        AlertManager -- "Алерты" --> TelegramBot
+    end
+
+    %% Logging Stack
+    subgraph "V. Стек логирования (ELK)"
+        LoggingStack[Logging Stack] --> Elasticsearch[Elasticsearch]
+        LoggingStack --> Kibana[Kibana]
+        LoggingStack --> Logstash[Logstash]
+        LoggingStack --> Filebeat[Filebeat]
+        
+        Filebeat -- "Сбор логов" --> ProductionVM
+        Kibana -- "Аналитика логов" --> Elasticsearch
+    end
+
+    %% Backup
+    subgraph "VI. Резервное копирование"
+        Backup[Backup System] -- "scp -r docker volumes" --> BackupStorage[Backup Storage]
+    end
+
+    %% Local Development
+    subgraph "VII. Локальная разработка"
+        LocalDev[Local Machine] --> DockerCompose[docker-compose up --build]
+        DockerCompose --> LocalFrontend[http://localhost:5000]
+        DockerCompose --> LocalBackend[http://localhost:5001]
+    end
+```
