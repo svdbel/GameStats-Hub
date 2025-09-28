@@ -3,18 +3,27 @@
 **"GameStats Hub"**
 
 **Функционал:**
-- Статистика игроков
-- Рейтинги и лидерборды
-- Новости и патч-ноуты
-- Сравнение игроков
+- **Статистика игроков**
+- **Рейтинги и лидерборды**
+- **Новости и патч-ноуты**
+- **Сравнение игроков**
 
 **API:**
 - **Dota 2:** OpenDota API
-  
-**Технические особенности:**
-- Микросервисная архитектура
-- PostgreSQL/MySQL для хранения исторических данных
-- Grafana для визуализации
+
+###### Технологии
+- **VCS:** GitHub
+- **Контейнеризация:** Docker
+- **Веб-приложение:** Python Flask, HTML + CSS + JS, Bootstrap
+- **CI/CD:** GitHub Actions
+- **IaC:** Terraform, Ansible
+- **Мониторинг:** Prometheus, Grafana, AlertManager,Cadvisor
+- **Логирование:** ELK Stack (Elasticsearch, Kibana, LogstashбFilebeat)
+- **Веб-серверы:** Nginx
+- **Бекапы:** scp -r 
+- **Уведомления:** Telegram Bot
+- **Облачные платформы:** GCP
+- **CDN:** Cloudflare
 
 
 ##  Продакшен-развертывание и CI/CD
