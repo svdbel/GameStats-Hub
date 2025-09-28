@@ -2,6 +2,8 @@
 
 **"GameStats Hub"**
 
+Игровой информационный портал для статистики, рейтингов игроков и аналитики,а также свежих новостей с мира Dota 2. Построен с использованием современных DevOps практик и полной автоматизацией инфраструктуры.
+
 **Функционал:**
 - **Статистика игроков**
 - **Рейтинги и лидерборды**
@@ -18,7 +20,7 @@
 - **CI/CD:** GitHub Actions
 - **IaC:** Terraform, Ansible
 - **Мониторинг:** Prometheus, Grafana, AlertManager,Cadvisor
-- **Логирование:** ELK Stack (Elasticsearch, Kibana, LogstashбFilebeat)
+- **Логирование:** ELK Stack (Elasticsearch, Kibana, Logstash,Filebeat)
 - **Веб-серверы:** Nginx
 - **Бекапы:** scp -r 
 - **Уведомления:** Telegram Bot
