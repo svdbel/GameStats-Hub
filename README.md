@@ -26,14 +26,20 @@
     cd infrastructure/terraform
     terraform apply
     ```
-    *Создает VPC, firewall rules и виртуальную машину в GCP*
+    *Создает VPC, firewall rules и виртуальные машины в GCP*
 
 2.  **Конфигурация сервера** автоматизирована с помощью Ansible:
     ```bash
     cd infrastructure/ansible  
-    ansible-playbook -i inventory.ini playbook.yml
+    ansible-playbook -i inventory.ini playbook.yml ssh-playbook.yml monitoring-playbook.yml node_exporter_install.yml logging-playbook.yml ngnix-reverse-proxy.yml backup.yml --ask-vault-password 
     ```
-    *Устанавливает Docker, настраивает окружение и запускает контейнеры*
+    *Устанавливает Docker, настраивает окружение и запускает контейнеры(frontend,backend)*
+    *Запрещает доступ по паролю (доступ по ssh ключу)*
+    *Устанавливает и настраивает стек мониторинга : prometheus,grafana,alertmanager,cadvisor*
+    *Устанавливает и настраивает node_exporter*
+    *Устанавливает и настраивает стек логирования : elasticsearch,kibana,logstash,filebeat*
+    *Устанавливает и настраивает reverse-proxy*
+    *Настраивае backup docker volume *
 
 3.  **Доступ к приложению:**
     *   Production Frontend: https://gamestats.svdbel.org
