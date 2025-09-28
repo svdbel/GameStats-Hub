@@ -1,17 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>О проекте</h1>
-<p>Этот информационный портал является учебным проектом по DevOps.</p>
-<h2>Технологический стек:</h2>
+<h1>О проекте GameStats Hub</h1>
+<p>Игровой информационный портал для статистики Dota 2, рейтингов игроков и аналитики. Построен с использованием
+    современных DevOps практик и полной автоматизацией инфраструктуры.</p>
+
+<h2> Основные возможности:</h2>
 <ul>
-    <li><strong>Веб-приложение:</strong> Python Flask, Bootstrap</li>
-    <li><strong>Контейнеризация:</strong> Docker</li>
-    <li><strong>CI/CD:</strong> GitHub Actions</li>
-    <li><strong>IaC:</strong> Terraform, Ansible</li>
-    <li><strong>Мониторинг:</strong> <a href="https://prometheus.svdbel.org">Prometheus</a>, <a
-            href="https://grafana.svdbel.org">Grafana</a></li>
-    <li><strong>Логирование:</strong> <a href="https://kibana.svdbel.org/">ELK Stack</a></li>
-    <li><strong>Хостинг:</strong> GCP</li>
+    <li><strong>Статистика игроков</strong> - highlights </li>
+    <li><strong>Рейтинги и лидерборды</strong> - таблицы лидеров в реальном времени</li>
+    <li><strong>Новости и патч-ноуты</strong> - последние обновления игры</li>
+    <li><strong>Сравнение игроков и героев</strong> - head-to-head статистика</li>
 </ul>
-<p><strong>Исходный код:</strong> <a href="https://github.com/svdbel/GameStats-Hub">GitHub Repository</a></p>
+
+<h2> Технологический стек:</h2>
+<ul>
+    <li><strong>Веб-приложение:</strong> Python Flask, HTML/CSS/JavaScript, Bootstrap</li>
+    <li><strong>API интеграция:</strong> OpenDota API</li>
+    <li><strong>Контейнеризация:</strong> Docker, Docker Compose</li>
+    <li><strong>CI/CD:</strong> GitHub Actions</li>
+    <li><strong>Инфраструктура как код:</strong> Terraform, Ansible</li>
+    <li><strong>Мониторинг:</strong> Prometheus, Grafana, AlertManager, cAdvisor</li>
+    <li><strong>Логирование:</strong> ELK Stack (Elasticsearch, Kibana, Logstash, Filebeat)</li>
+    <li><strong>Облачная платформа:</strong> Google Cloud Platform (GCP)</li>
+    <li><strong>CDN и безопасность:</strong> Cloudflare</li>
+    <li><strong>Веб-сервер:</strong> Nginx Reverse Proxy</li>
+</ul>
+
+<h2> Доступ к сервисам:</h2>
+<ul>
+    <li><strong>Основное приложение:</strong> <a href="https://gamestats.svdbel.org">https://gamestats.svdbel.org</a>
+    </li>
+    <li><strong>Мониторинг (Grafana):</strong> <a href="https://grafana.svdbel.org">https://grafana.svdbel.org</a></li>
+    <li><strong>Логи (Kibana):</strong> <a href="https://kibana.svdbel.org">https://kibana.svdbel.org</a></li>
+    <li><strong>Метрики (Prometheus):</strong> <a href="https://prometheus.svdbel.org">https://prometheus.svdbel.org</a>
+    </li>
+</ul>
+
+<p><strong> Исходный код:</strong> <a href="https://github.com/svdbel/GameStats-Hub" target="_blank">GitHub
+        Repository</a></p>
+
+<p><em>Проект демонстрирует полный цикл разработки и эксплуатации современного веб-приложения с применением лучших
+        практик DevOps.</em></p>
 {% endblock %}
