@@ -14,56 +14,94 @@
 
 ```mermaid
 graph TD
-    %% Infrastructure Provisioning & Configuration
-    subgraph "I. Инфраструктура как код (IaC)"
-        Terraform[Terraform] -- "Создает VPC, VM, Firewall" --> GCP[GCP Cloud]
-        Ansible[Ansible] -- "Конфигурирует серверы" --> GCP
+    subgraph "Infrastructure Provisioning"
+        Terraform[Terraform] -- "Creates & Configures" --> GCPServer[GCP Server]
     end
 
-    %% CI/CD Pipeline
-    subgraph "II. CI/CD Pipeline (GitHub Actions)"
-        GitHub[GitHub Main] -- "Push/Merge" --> GitHubActions[GitHub Actions]
-        GitHubActions -- "Сборка образов" --> DockerBuild[Build Images]
-        DockerBuild -- "Публикация в" --> GHCR[GitHub Container Registry]
-        GitHubActions -- "Деплой на" --> ProductionVM[Production VM]
-        GitHubActions -- "Уведомления" --> TelegramBot[Telegram Bot]
+    subgraph "Configuration Management"
+        Ansible[Ansible] -- "Installs Docker Runtime & Configures" --> GCPServer
     end
 
-    %% Production Environment
-    subgraph "III. Продакшен окружение"
-        ProductionVM -- "Запускает" --> DockerContainers[Docker Containers]
-        
-        DockerContainers --> Frontend[Frontend Container]
-        DockerContainers --> Backend[Backend Container]
-        DockerContainers --> Nginx[Nginx Reverse Proxy]
-        
-        User[Пользователь] -- "https://gamestats.svdbel.org" --> Nginx
-        Nginx --> Frontend
-        Frontend -- "API запросы" --> Backend
-        Backend -- "Внешние данные" --> OpenDotaAPI[OpenDota API]
+    subgraph "CI/CD Pipeline"
+        GitHub[GitHub Repository] -- "Triggers" --> GitHubActions[GitHub Actions CI/CD]
+        GitHubActions -- "Builds & Pushes Image" --> DockerRegistry[GitHub Container Registry]
+        GitHubActions -- "Pipeline" --> DeployTask[Deploy Application]
+        DeployTask -- "Deploys to" --> AppServer[App Server]
     end
 
-    %% Monitoring Stack
-    subgraph "IV. Стек мониторинга"
-        Prometheus[Prometheus] -- "Сбор метрик" --> ProductionVM
-        Grafana[Grafana] -- "Визуализация" --> Prometheus
-        AlertManager[AlertManager] -- "Алерты" --> TelegramBot
-        Cadvisor[Cadvisor] -- "Метрики контейнеров" --> Prometheus
-        NodeExporter[Node Exporter] -- "Системные метрики" --> Prometheus
+    subgraph "GCP Server Environment"
+        GCPServer -- "Hosts" --> DockerContainers[Docker Containers]
     end
 
-    %% Logging Stack
-    subgraph "V. Стек логирования (ELK)"
-        Filebeat[Filebeat] -- "Сбор логов" --> ProductionVM
-        Filebeat --> Logstash[Logstash]
-        Logstash --> Elasticsearch[Elasticsearch]
-        Kibana[Kibana] -- "Аналитика логов" --> Elasticsearch
+    subgraph "Running Docker Containers"
+        DockerContainers --> NginxProxy[Nginx Reverse Proxy]
+        DockerContainers --> MonitoringStack[Monitoring Stack]
+        DockerContainers --> AppServer
+        NginxProxy -- "Routes Traffic to" --> AppServer
+        NginxProxy -- "Routes Traffic to" --> MonitoringStack
     end
 
-    %% Backup System
-    subgraph "VI. Система бэкапов"
-        Backup[Backup Script] -- "scp docker volumes" --> BackupVM[Backup VM]
+    subgraph "Application Services"
+        AppServer --> Frontend[Frontend Container]
+        AppServer --> Backend[Backend Container]
+        Frontend -- "API Calls" --> Backend
+        Backend -- "External Data" --> OpenDotaAPI[OpenDota API]
     end
+
+    subgraph "Monitoring Stack"
+        MonitoringStack --> Prometheus[Prometheus]
+        MonitoringStack --> Grafana[Grafana]
+        MonitoringStack --> AlertManager[AlertManager]
+        MonitoringStack --> Cadvisor[cAdvisor]
+        MonitoringStack --> NodeExporter[Node Exporter]
+        Prometheus -- "Monitors" --> AppServer
+        Prometheus -- "Monitors" --> GCPServer
+        Grafana -- "Visualizes Data from" --> Prometheus
+        AlertManager -- "Alerts" --> TelegramBot[Telegram Bot]
+    end
+
+    subgraph "Logging Stack"
+        LoggingStack[Logging Stack] --> Elasticsearch[Elasticsearch]
+        LoggingStack --> Kibana[Kibana]
+        LoggingStack --> Logstash[Logstash]
+        LoggingStack --> Filebeat[Filebeat]
+        Filebeat -- "Collects Logs from" --> AppServer
+        Filebeat -- "Collects Logs from" --> GCPServer
+        Kibana -- "Visualizes Logs from" --> Elasticsearch
+    end
+
+    subgraph "Backup System"
+        Backup[Backup System] -- "SCP Transfers" --> BackupStorage[Backup Storage]
+        Backup -- "Backs up" --> DockerContainers
+    end
+
+    %% Define Styles
+    style Terraform fill:#623CE4,stroke:#333,stroke-width:1px,color:#fff
+    style Ansible fill:#EE0000,stroke:#333,stroke-width:1px,color:#fff
+    style GCPServer fill:#4285F4,stroke:#333,stroke-width:1px,color:#fff
+    style GitHub fill:#181717,stroke:#333,stroke-width:1px,color:#fff
+    style GitHubActions fill:#2088FF,stroke:#333,stroke-width:1px,color:#fff
+    style DockerContainers fill:#2496ED,stroke:#333,stroke-width:1px,color:#fff
+    style DockerRegistry fill:#2496ED,stroke:#333,stroke-width:1px,color:#fff
+    style NginxProxy fill:#009639,stroke:#333,stroke-width:1px,color:#fff
+    style AppServer fill:#009639,stroke:#333,stroke-width:1px,color:#fff
+    style Frontend fill:#FF6D00,stroke:#333,stroke-width:1px,color:#fff
+    style Backend fill:#FF6D00,stroke:#333,stroke-width:1px,color:#fff
+    style OpenDotaAPI fill:#1DA1F2,stroke:#333,stroke-width:1px,color:#fff
+    style MonitoringStack fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#333
+    style Prometheus fill:#E6522C,stroke:#333,stroke-width:1px,color:#fff
+    style Grafana fill:#F46800,stroke:#333,stroke-width:1px,color:#fff
+    style AlertManager fill:#FF9900,stroke:#333,stroke-width:1px,color:#fff
+    style Cadvisor fill:#2496ED,stroke:#333,stroke-width:1px,color:#fff
+    style NodeExporter fill:#8E44AD,stroke:#333,stroke-width:1px,color:#fff
+    style LoggingStack fill:#f9f9f9,stroke:#333,stroke-width:1px,color:#333
+    style Elasticsearch fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Kibana fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Logstash fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style Filebeat fill:#005571,stroke:#333,stroke-width:1px,color:#fff
+    style TelegramBot fill:#0088CC,stroke:#333,stroke-width:1px,color:#fff
+    style Backup fill:#795548,stroke:#333,stroke-width:1px,color:#fff
+    style BackupStorage fill:#795548,stroke:#333,stroke-width:1px,color:#fff
 ```
 
 ##  Технологический стек:
