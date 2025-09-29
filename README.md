@@ -71,8 +71,7 @@ graph TD
     end
 
     subgraph "Backup System"
-        Backup[Backup System] -- "SCP Transfers" --> BackupStorage[Backup Storage]
-        Backup -- "Backs up" --> DockerContainers
+        GCPServer -- "Backs up" --> VM[vm backup]
     end
 
     %% Define Styles
@@ -100,8 +99,6 @@ graph TD
     style Logstash fill:#005571,stroke:#333,stroke-width:1px,color:#fff
     style Filebeat fill:#005571,stroke:#333,stroke-width:1px,color:#fff
     style TelegramBot fill:#0088CC,stroke:#333,stroke-width:1px,color:#fff
-    style Backup fill:#795548,stroke:#333,stroke-width:1px,color:#fff
-    style BackupStorage fill:#795548,stroke:#333,stroke-width:1px,color:#fff
 ```
 
 ##  Технологический стек:
