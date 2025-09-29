@@ -37,6 +37,10 @@ graph TD
         DockerContainers --> NginxProxy[Nginx Reverse Proxy]
         DockerContainers --> MonitoringStack[Monitoring Stack]
         DockerContainers --> AppServer
+    end
+
+    subgraph "DNS & Routing"
+        Cloudflare[Cloudflare DNS] -- "Proxies traffic to" --> NginxProxy
         NginxProxy -- "Routes Traffic to" --> AppServer
         NginxProxy -- "Routes Traffic to" --> MonitoringStack
     end
@@ -99,6 +103,8 @@ graph TD
     style Logstash fill:#005571,stroke:#333,stroke-width:1px,color:#fff
     style Filebeat fill:#005571,stroke:#333,stroke-width:1px,color:#fff
     style TelegramBot fill:#0088CC,stroke:#333,stroke-width:1px,color:#fff
+    style Cloudflare fill:#F38020,stroke:#333,stroke-width:1px,color:#fff
+    style VM fill:#795548,stroke:#333,stroke-width:1px,color:#fff
 ```
 
 ##  Технологический стек:
