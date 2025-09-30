@@ -192,6 +192,8 @@ GameStatsHub/
 
 ```bash
 cd infrastructure/terraform
+terraform init
+terraform plan
 terraform apply
 ```
 
@@ -217,13 +219,6 @@ ansible-playbook -i inventory.ini playbook.yml ssh-playbook.yml monitoring-playb
 - Систему бэкапов
 - Усиление безопасности SSH
 
-## Мониторинг и Логирование
-
-### URL для доступа (Продакшен)
-- **Приложение**: https://gamestats.svdbel.org
-- **Дашборды Grafana**: Доступны через Nginx reverse proxy
-- **Логи Kibana**: Доступны через Nginx reverse proxy
-
 ### Компоненты мониторинга
 - **Prometheus**: Сбор и хранение метрик
 - **Grafana**: Визуализация и дашборды
@@ -246,8 +241,8 @@ ansible-playbook -i inventory.ini playbook.yml ssh-playbook.yml monitoring-playb
 
 ## Система бэкапов
 
-Автоматическое резервное копирование Docker volumes с продакшена на бэкап сервер:
-- Плановое резервное копирование томов с использованием SCP
+- Резервное копирование томов с использованием SCP
+- Использование *cron* для автоматизации РК
 - Безопасная аутентификация по SSH ключу между серверами
 
 ## Окружения
@@ -255,7 +250,7 @@ ansible-playbook -i inventory.ini playbook.yml ssh-playbook.yml monitoring-playb
 | Окружение | Frontend | Backend | Назначение |
 |-----------|----------|---------|------------|
 | **Локальное** | http://localhost:5000 | http://localhost:5001 | Разработка |
-| **Продакшен** | https://gamestats.svdbel.org | Внутренний | Продакшен деплой |
+| **Продакшен** | https://gamestats.svdbel.org | http://localhost:5001 | Продакшен деплой |
 
 ## Интеграция с API
 
@@ -264,10 +259,9 @@ ansible-playbook -i inventory.ini playbook.yml ssh-playbook.yml monitoring-playb
 
 ## CI/CD Пайплайн
 
-Автоматизированный пайплайн на GitHub Actions:
 1. **Тестирование и сборка**: На каждом pull request
 2. **Деплой в продакшен**: При мерже в main ветку
-3. **Container Registry**: Автоматическая публикация в GHCR
+3. **Container Registry**: Автоматическая публикация в GitHub Container Registry
 4. **Уведомления**: Telegram алерты о статусе деплоя
 
 ## Алертинг
