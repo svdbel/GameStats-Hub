@@ -10,7 +10,22 @@
 - **Новости и патч-ноуты**
 - **Сравнение героев и игроков**
 
-## Архитектура:
+## Архитектура приложения:
+
+```
+FRONTEND (HTML/CSS/JS + Bootstrap)
+├─ base.html (базовый шаблон)
+├─ index.html (главная)
+├─ about.html (о проекте)
+└─ metrics.html (метрики)
+    ↓
+BACKEND (Python Flask)
+├─ Маршрутизация
+├─ Рендеринг шаблонов  
+└─ (потенциально REST API)
+```
+
+## Архитектура проекта:
 
 ```mermaid
 graph TD
@@ -109,7 +124,7 @@ graph TD
 
 ##  Технологический стек:
 
-- **Frontend**: Python Flask, HTML/CSS/JavaScript, Bootstrap
+- **Frontend**: HTML/CSS/JavaScript, Bootstrap
 - **Backend**: Python Flask, REST API
 - **API интеграция**: OpenDota API
 - **Контроль версий**: GitHub
@@ -156,8 +171,9 @@ graph TD
 
 ```
 GameStatsHub/
-├── frontend/                 # Frontend приложение
-├── backend/                  # Backend API
+├── frontend/                # Frontend приложение
+├── backend/                 # Backend API
+├── backup                   # Backup(cron + scp)
 ├── infrastructure/
 │   ├── terraform/           # Provisioning инфраструктуры
 │   └── ansible/             # Конфигурация серверов
